@@ -13,7 +13,7 @@
 // Visitor interface
 template<typename T>
 struct Visitor {
-    virtual void visit(T&) const = 0;
+    virtual void visit(T&) const {}
 };
 
 // Visitor helper class (for variadic template, multiple batches/images at once)
@@ -26,7 +26,7 @@ struct VisitorHelper<typelist<Ts...>> : public Visitor<Ts>... {
 // Visitable interface
 class Image;
 struct VisitableImageProcessor {
-    virtual void accept(const Visitor<Image>& v) const = 0;
+    virtual void accept(Visitor<Image>& v) const {}
 };
 
 #endif

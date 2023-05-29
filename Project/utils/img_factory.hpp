@@ -8,8 +8,6 @@
 #ifndef IMG_FACTORY_H
 #define IMG_FACTORY_H
 
-#pragma warning(disable:4250)
-
 #include <memory>
 #include <type_traits>
 
