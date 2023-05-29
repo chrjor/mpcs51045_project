@@ -8,16 +8,16 @@
 #ifndef IMG_FACTORY_H
 #define IMG_FACTORY_H
 
+#pragma warning(disable:4250)
+
 #include <memory>
 #include <type_traits>
 
-template <typename... Ts> struct typelist {};
+#include "types.hpp"
 
-template <typename T>
-struct Type2Type 
-{
-    using type = T;
-};
+using std::unique_ptr;
+using std::add_const_t;
+
 
 // Adapt signature (converts input T to const reference to T)
 template<typename T> 
@@ -99,8 +99,7 @@ struct concrete_creator : virtual public AbstractFactory
 };
 
 template<typename AbstractFactory, typename Result, typename... Args, typename Concrete>
-struct concrete_creator
-        <AbstractFactory, Result*(Args...), Concrete> : virtual public AbstractFactory 
+struct concrete_creator<AbstractFactory, Result*(Args...), Concrete> : virtual public AbstractFactory 
 {
     unique_ptr<Result> doCreate(Type2Type<Result>&&, typename adapt_signature<Args>::type... args) const 
     {
@@ -112,8 +111,7 @@ template<typename AbstractFactory, typename... ConcreteTypes>
 struct concrete_factory;
 
 template<typename... AbstractTypes, typename... ConcreteTypes>
-struct concrete_factory
-        <abstract_factory<typelist<AbstractTypes...>>, typelist<ConcreteTypes...>>
+struct concrete_factory<abstract_factory<typelist<AbstractTypes...>>, typelist<ConcreteTypes...>>
         : public concrete_creator<abstract_factory<typelist<AbstractTypes...>>, AbstractTypes, ConcreteTypes>... {};
 
 #endif

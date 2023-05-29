@@ -20,7 +20,7 @@
 #include <boost/gil/extension/io/png.hpp>
 #include <ctre.hpp>
 
-#include "visitor.hpp"
+#include "../utils/img_visitor.hpp"
 
 using std::string;
 using std::unique_ptr;
@@ -34,6 +34,7 @@ using boost::gil::png_tag;
 using boost::gil::bmp_tag;
 using boost::gil::rgb8_image_t;
 
+
 // Enum for image tag type
 enum class ImageTagType {
     JPEG,
@@ -42,11 +43,11 @@ enum class ImageTagType {
 };
 
 // Image classes for concrete image factory
-class Image : public Visitable<Image> {
+class Image : public VisitableImageProcessor {
 public:
-    Image(std::string_view path) : tag() {
+    Image(std::string_view path) {
+        // Parse input path using CTRE
         if (auto [whole, pre, dir, post, ext] = ctre::match<"(.*)(\\/in\\/)(.*)(jpg|png|jpeg|bmp)">(path); whole) {
-
             if (!pre.to_view().empty() && !dir.to_view().empty()
                 && !post.to_view().empty() && !ext.to_view().empty()
                 ) {
@@ -63,7 +64,6 @@ public:
                     read_image(std::string(path), *img, bmp_tag{});
                     tag = ImageTagType::BMP;
                 }
-
                 out_path = pre.to_string() + "/out/" + post.to_string() +  ext.to_string();
             }
             else {
@@ -95,9 +95,8 @@ public:
         out_path = other.out_path;
         return *this;
     }
-    
-    template<typename Visitor>
-    void accept(Visitor& v) { v.visit(*this); }
+ 
+    void accept(Visitor<Image>& v) { v.visit(*this); }
 
     void write_out() { 
         if (tag == ImageTagType::JPEG) {

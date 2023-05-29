@@ -152,6 +152,7 @@ private:
         }
     }
 
+    // Homography matrix
     matrix3x3 m;
 };
 

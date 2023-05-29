@@ -6,6 +6,7 @@
 
 #ifndef BATCH_H
 #define BATCH_H
+
 #include <algorithm>
 #include <concepts>
 #include <execution>
@@ -14,7 +15,8 @@
 #include <vector>
 
 #include "img.hpp"
-#include "visitor.hpp"
+#include "../filters/batchfilters.hpp"
+#include "../utils/img_visitor.hpp"
 
 using std::make_unique;
 using std::string;
@@ -22,15 +24,8 @@ using std::unique_ptr;
 using std::vector;
 
 
-// Batchable concept
-template<typename T>
-concept BatchableFilter = requires(T a, Image& img) {
-    { a.apply(img) } -> std::same_as<void>;
-    { T::is_independent() } -> std::same_as<bool>;
-};
-
 // Batch image class for batch image factory
-class ImageBatch : public Visitable<ImageBatch> {
+class ImageBatch : public VisitableImageProcessor {
 public:
     ImageBatch(string file_list) : batch(vector<unique_ptr<Image>>{}) {
         std::ifstream file(file_list, std::ios::in);
@@ -56,12 +51,11 @@ public:
         return *this;
     }
 
-    template<typename T>
-    requires BatchableFilter<Visitor<T>>
-    void accept(Visitor<T>& v) {
+    template<template<typename Image> typename Filter>
+    void accept(Filter<Image>& visitor) requires (BatchableFilter<Filter<Image>>) {
         std::for_each(std::execution::par, batch.begin(), batch.end(), 
-            [&v](unique_ptr<Image>& img) {
-                img->accept(v);
+            [&visitor](unique_ptr<Image>& img) {
+                img->accept(visitor);
             }
         );
     }
@@ -76,7 +70,6 @@ public:
 
 private:
     vector<unique_ptr<Image>> batch;
-
 };
 
 #endif

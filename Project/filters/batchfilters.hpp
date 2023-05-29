@@ -15,8 +15,8 @@
 #include <boost/gil/color_convert.hpp>
 #include <boost/gil/algorithm.hpp>
 
-#include "../img/visitor.hpp"
-#include "../img/batch.hpp"
+#include "../img/img.hpp"
+#include "../utils/img_visitor.hpp"
 
 using boost::gil::rgb8_image_t;
 using boost::gil::rgb32f_pixel_t;
@@ -30,8 +30,16 @@ using boost::gil::color_converted_view;
 using boost::gil::rgb8_pixel_t;
 
 
+// Batchable filter concept
+template<typename T>
+concept BatchableFilter = requires(T a, Image& img) {
+    requires std::is_base_of_v<Visitor<Image>, T>;
+    { a.apply(img) } -> std::same_as<void>;
+    { T::is_independent() } -> std::same_as<bool>;
+};
+
 // Gaussian filter
-class GaussianFilter : public Visitor<ImageBatch> {
+class GaussianFilter : public Visitor<Image> {
 public:
     // Gaussian kernel
     static constexpr float kernel[] = {0.00022923296f, 0.0059770769f, 0.060597949f, 0.24173197f, 0.38292751f,
@@ -64,7 +72,7 @@ static_assert(BatchableFilter<GaussianFilter>, "GaussianFilter must satisfy Batc
 
 
 // Sobel filter
-class SobelFilter : public Visitor<ImageBatch> {
+class SobelFilter : public Visitor<Image> {
 public:
     // Sobel kernels
     static constexpr float kernel_x[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};

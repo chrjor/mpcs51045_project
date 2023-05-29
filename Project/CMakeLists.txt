@@ -17,7 +17,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(ctre)
 
 add_subdirectory(img)
-add_subdirectory(transformations)
+add_subdirectory(filters)
+add_subdirectory(utils)
 
 find_package(Boost 1.70.0 REQUIRED)
 
@@ -27,9 +28,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     Boost::boost
+    ctre::ctre
     img
     transformations
-    ctre::ctre
+    utils
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)

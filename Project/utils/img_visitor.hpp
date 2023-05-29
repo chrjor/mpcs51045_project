@@ -8,12 +8,12 @@
 #define VISITOR_H
 #include<type_traits>
 
-template <typename... Ts> struct typelist {};
+#include "types.hpp"
 
 // Visitor interface
 template<typename T>
 struct Visitor {
-    virtual void visit(T&) const {}
+    virtual void visit(T&) const = 0;
 };
 
 // Visitor helper class (for variadic template, multiple batches/images at once)
@@ -24,11 +24,9 @@ struct VisitorHelper<typelist<Ts...>> : public Visitor<Ts>... {
 };
 
 // Visitable interface
-template<typename T>
-struct Visitable {
-    virtual void accept(const Visitor<T>& v) const {
-        v.visit(*static_cast<const T*>(this));
-    }
+class Image;
+struct VisitableImageProcessor {
+    virtual void accept(const Visitor<Image>& v) const = 0;
 };
 
 #endif
