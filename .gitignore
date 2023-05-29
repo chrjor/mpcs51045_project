@@ -12,4 +12,5 @@ _deps
 compile_flags.txt
 ```
 *.gch
+*Project.code-workspace:workspace
 Project.code-workspace:workspace
