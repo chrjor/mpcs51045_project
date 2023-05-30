@@ -1,11 +1,11 @@
 // 
-// homography.cpp
+// homographyFilter.cpp
 // Christian Jordan
 // MPSC 51045 - Final Project
 //
 
-#ifndef HOMOGRAPHY_H
-#define HOMOGRAPHY_H
+#ifndef homographyFilter_H
+#define homographyFilter_H
 #include <algorithm>
 #include <cmath>
 #include <thread>
@@ -32,7 +32,7 @@ using boost::gil::nth_channel_view;
 using matrix3x3 = std::array<std::array<double, 3>, 3>;
 
 
-// Helper function to apply a matrix transformation to a point
+// Transform a point using a matrix
 point_t point_transform(const matrix3x3& m, const point_t& p) {
     double transformedX = m[0][0] * p.x + m[0][1] * p.y + m[0][2];
     double transformedY = m[1][0] * p.x + m[1][1] * p.y + m[1][2];
@@ -78,14 +78,14 @@ bilinear_interpolate(rgb8_image_t& img, const point_t& p, const matrix3x3& m) {
     return pixel<unsigned char, boost::gil::rgb_layout_t>(r, g, b);
 }
 
-// Apply homography to an image
-class homography : public Visitor<Image> {
+// Apply homographyFilter to an image
+class HomographyFilter : public VisitorFilter {
 public:
-    homography(const matrix3x3& m) : m(m) {}
+    HomographyFilter(const matrix3x3& m) : m(m) {}
 
-    void visit(Image& img) {
+    void visit(ImageAccessor& img) {
         rgb8_image_t out = new_out(img.get_image(), m);
-        parallel_apply_homography(img.get_image(), m, out);
+        parallel_apply_homographyFilter(img.get_image(), m, out);
         img.set_image(out);
     }
 
@@ -105,7 +105,7 @@ private:
         std::transform(corners.begin(), corners.end(), transformed_corners.begin(),
                     [&m](const auto& p) {
                         return point_transform(m, p);
-                     });
+                    });
 
         // Get the min and max of the transformed corners
         auto [min_e, max_e] = std::minmax_element(
@@ -122,8 +122,8 @@ private:
         return out;
     }
 
-    // Apply the homography in parallel using jthread
-    void parallel_apply_homography(const rgb8_image_t& img, const matrix3x3& m, rgb8_image_t& out) {
+    // Apply the homographyFilter in parallel using jthread
+    void parallel_apply_homographyFilter(const rgb8_image_t& img, const matrix3x3& m, rgb8_image_t& out) {
         // Get the number of threads and the chunk size
         int num_threads = std::thread::hardware_concurrency();
         int chunk_size = out.height() / num_threads;
@@ -136,7 +136,7 @@ private:
             if (i == num_threads - 1) {
                 end = out.height();
             }
-            // Apply the homography to the chunk
+            // Apply the homographyFilter to the chunk
             threads.emplace_back([this, &img, &m, &out, start, end]() {
                 rgb8_image_t img_cpy = img;
                 for (int y = start; y < end; ++y) {
@@ -152,8 +152,9 @@ private:
         }
     }
 
-    // Homography matrix
+    // homographyFilter matrix
     matrix3x3 m;
 };
+
 
 #endif

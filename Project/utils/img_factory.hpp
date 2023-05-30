@@ -7,109 +7,76 @@
 // Adapted from advanced_factory.h
 #ifndef IMG_FACTORY_H
 #define IMG_FACTORY_H
+#pragma warning(disable:4250)
 
-#include <memory>
-#include <type_traits>
+#include<tuple>
+#include<utility>
+#include<memory>
+#include<type_traits>
 
-#include "types.hpp"
-
+using std::tuple;
 using std::unique_ptr;
 using std::add_const_t;
+using std::make_unique;
+using std::enable_if_t;
+using std::is_base_of_v;
 
 
-// Adapt signature (converts input T to const reference to T)
-template<typename T> 
-struct adapt_signature 
-{
-    using type = add_const_t<T> &;
-};
-
-// Adapt signature (specialization for reference to T)
-template<typename T> 
-struct adapt_signature<T &> 
-{
-    using type = T;
-};
-
-// Adapt signature (specialization for move reference to T)
 template<typename T>
-struct adapt_signature<T &&> 
-{
-    using type = T;
+struct TT {
 };
 
-// Signature (matches function signature in list of function signatures)    
-template<typename Result, typename ...Ts> 
-struct Signature;
-
-template<typename Result, typename ...Ts> 
-struct Signature<Result, Result, Ts...> 
-{
-    using type = Result;
-};
-
-template<typename Result, typename ...Args, typename ...Ts> 
-struct Signature<Result, Result*(Args...), Ts...> 
-{
-    using type = Result*(Args...);
-};
-
-template<typename Result, typename T, typename ...Ts> 
-struct Signature<Result, T, Ts...> : public Signature<Result, Ts...> {};
-
-// Abstract factory base classes
 template<typename T>
-struct abstract_creator 
-{
-    virtual unique_ptr<T> doCreate(Type2Type<T> &&) const = 0;
+struct abstract_creator {
+    virtual unique_ptr<T> doCreate(TT<T> &&) = 0;
 };
 
 template<typename Result, typename ...Args>
-struct abstract_creator<Result*(Args...)>
-{
-    virtual unique_ptr<Result> doCreate(Type2Type<Result>&&, typename adapt_signature<Args>::type...) const = 0;
+struct abstract_creator<Result(Args...)>{
+    virtual unique_ptr <Result> doCreate(TT<Result>&&, Args...) = 0;
 };
 
-// Abstract factory specialization
-template<typename T> 
-struct abstract_factory;
 
-template<typename ...Ts>
-struct abstract_factory<typelist<Ts...>> : public abstract_creator<Ts>... 
-{
-    template<class U, typename ...Args> 
-    unique_ptr<U> create(Args&&... args) const 
-    {
-        abstract_creator<typename Signature<U, Ts...>::type> const& creator = *this;
-        return creator.doCreate(Type2Type<U>(), std::forward<Args>(args)...);
+template<typename... Ts>
+struct abstract_factory : public abstract_creator<Ts>... {
+    using abstract_creator<Ts>::doCreate...;
+    template<class U, typename ...Args> unique_ptr<U> create(Args&&... args) {
+        return doCreate(TT<U>(), std::forward<Args>(args)...);
     }
-    virtual ~abstract_factory() {}
+    virtual ~abstract_factory() = default;
 };
 
-// Concrete factory specializations
 template<typename AbstractFactory, typename Abstract, typename Concrete>
-struct concrete_creator : virtual public AbstractFactory 
-{
-    unique_ptr<Abstract> doCreate(Type2Type<Abstract>&&) const 
-    {
-        return std::make_unique<Concrete>();
+struct concrete_creator : virtual public AbstractFactory {
+    unique_ptr<Abstract> doCreate(TT<Abstract> &&) override {
+        return make_unique<Concrete>();
     }
 };
 
 template<typename AbstractFactory, typename Result, typename... Args, typename Concrete>
-struct concrete_creator<AbstractFactory, Result*(Args...), Concrete> : virtual public AbstractFactory 
-{
-    unique_ptr<Result> doCreate(Type2Type<Result>&&, typename adapt_signature<Args>::type... args) const 
-    {
-        return std::make_unique<Concrete>(std::forward<adapt_signature<Args>::type>(args)...);
+struct concrete_creator<AbstractFactory, Result(Args...), Concrete> 
+    : virtual public AbstractFactory {
+    unique_ptr<Result> doCreate(TT<Result>&&, Args... args) {
+        return make_unique<Concrete>(args...);
     }
 };
-
-template<typename AbstractFactory, typename... ConcreteTypes>
+template<typename AbstractFactory, typename ...ConcreteTypes>
 struct concrete_factory;
 
 template<typename... AbstractTypes, typename... ConcreteTypes>
-struct concrete_factory<abstract_factory<typelist<AbstractTypes...>>, typelist<ConcreteTypes...>>
-        : public concrete_creator<abstract_factory<typelist<AbstractTypes...>>, AbstractTypes, ConcreteTypes>... {};
+struct concrete_factory
+    <abstract_factory<AbstractTypes...>, ConcreteTypes...>
+    : public concrete_creator<abstract_factory<AbstractTypes...>, 
+                                AbstractTypes, ConcreteTypes>... {
+};
+
+template<typename AbstractFactory, template<typename> class Concrete>
+struct parameterized_factory;
+
+template<template<typename> class Concrete, typename... AbstractTypes>
+struct parameterized_factory<abstract_factory<AbstractTypes...>, Concrete>
+    : public concrete_factory<abstract_factory<AbstractTypes...>, 
+                                Concrete<AbstractTypes>...> {
+};
 
 #endif
