@@ -39,7 +39,7 @@ int main() {
     //     {-0.003, 5.898, -8.176},
     //     {0.016, 1.318, 1.0}
     // }};
-    // batch = filter<HomographyFilter>(batch, m); // Will not compile
+    // batch = filter<HomographyFilter>(batch, m); // Should not compile
 
     // Create image
     // string img_file = "data/in/img_1.jpg";
